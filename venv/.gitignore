@@ -1,0 +1,10 @@
+**/idea
+*.yaml
+__init__.py
+**/tests
+*.xml
+*.txt
+*.json
+**/lib
+**/Scripts
+*.cfg
