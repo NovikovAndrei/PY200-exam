@@ -4,42 +4,40 @@ import random
 
 
 class IdCounter:
-    __id = 0
 
     def __init__(self):
-        self._id = IdCounter.__id
-        IdCounter.__id += 1
+        self.id = 0
 
     def get_id(self):
-        return self._id
+        self.id += 1
+        return self.id
 
 
 class Password:
 
-    def __init__(self, password):
-        self.password = password
-        self.is_valid_password()
+    # def __init__(self, password):
+    #     self.hashed_password = self.get(password)
+    #     self.is_valid_password(password)
 
-    def get(self):
-        return hashlib.sha256(self.password.encode()).hexdigest()
+    def get(self, password):
+        self.is_valid_password(password)
+        return hashlib.sha256(password.encode()).hexdigest()
 
-    def is_valid_password(self):
-        if len(self.password) < 8:
+    def is_valid_password(self, password):
+        if len(password) < 8:
             raise ValueError("Длина пароля должна быть не менее 8 символов")
-        if not bool(re.search(r'[0-9]', self.password)):
+        if not bool(re.search(r'[0-9]', password)):
             raise ValueError("В пароле должны быть цифры")
-        if not bool(re.search(r'[a-zA-Z]', self.password)):
+        if not bool(re.search(r'[a-zA-Z]', password)):
             raise ValueError("В пароле должны быть буквы")
         return "пароль валиден"
 
 
-class Product(IdCounter):
-    __id = 0
+class Product:
+    _id_counter = IdCounter()
 
     def __init__(self, name, price, rating):
-        super().__init__()
-        self._id = Product.__id
-        Product.__id += 1
+        self._id = self._id_counter.get_id()
         self._name = name
         self.is_valid_name()
         self._price = price
@@ -89,18 +87,20 @@ class Product(IdCounter):
             raise ValueError("Рейтинг должен быть в диапазоне 1-5")
         return "Рейтинг Валиден"
 
-    @staticmethod
-    def generate_product():
-        name = random.choice(open("data.txt", "r", encoding="utf8").read().split('\n'))
-        price = round(random.uniform(100, 1000), 2)
-        rating = round(random.uniform(1, 5), 2)
-        return Product(name, price, rating)
-
     def __repr__(self):
         return f"{__class__.__name__}(name={self._name!r}, price={self.price}, rating={self.rating})"
 
     def __str__(self):
-        return f"{self.get_id()}_{self.name}"
+        return f"{self._id}_{self.name}"
+
+
+class ProductGenerator:
+
+    def generate_product(self):
+        name = random.choice(open("data.txt", "r", encoding="utf8").read().split('\n'))
+        price = round(random.uniform(100, 1000), 2)
+        rating = round(random.uniform(1, 5), 2)
+        return Product(name, price, rating)
 
 
 class Cart:
@@ -117,14 +117,15 @@ class Cart:
         return f"{self.cart}"
 
 
-class User(IdCounter):
-    __id = 0
+class User:
+    _id_counter = IdCounter()
+    _manager_password = Password()
 
     def __init__(self, username, password):
-        super().__init__()
+        self._id = self._id_counter.get_id()
         self._username = username
         self.is_valid_username(username)
-        self.__password = Password(password).get()
+        self.__password = self._manager_password.get(password)
         self._cart = Cart()
 
     @property
@@ -144,15 +145,16 @@ class User(IdCounter):
         return "Имя пользователя валидно"
 
     def __str__(self):
-        return f"ID={self.get_id()}, Имя пользователя:{self._username}, Пароль:*Password1*"
+        return f"ID={self._id}, Имя пользователя:{self._username}, Пароль:*Password1*"
 
     def __repr__(self):
         return f"{__class__.__name__}(username={self._username!r}, password=*Password1*)"
 
 
-class Store(Cart):
+class Store:
+    _product_generator = ProductGenerator()
+
     def __init__(self):
-        super().__init__()
         self.users = {}
 
     def authenticate(self):
@@ -169,13 +171,16 @@ class Store(Cart):
         return f"В вашей корзине: {current_cart}"
 
     def add_random_prod(self, username):
-        random_product = Product.generate_product()
+        random_product = Store._product_generator.generate_product()
         self.users[username]['cart'].append(random_product)
         print(f"{username}, Вы добавили в корзину {random_product}")
 
 
 if __name__ == "__main__":
     test_product = Product("test_product", 999, 3.33)
+    prod2 = Product("test_product", 999, 3.33)
+    user1 = User("fff", "a111111111")
+
     store1 = Store()
     store1.authenticate()
     print(store1.users["client1"])
@@ -183,5 +188,4 @@ if __name__ == "__main__":
     store1.add_random_prod("client1")
     store1.add_random_prod("client1")
     store1.add_random_prod("client1")
-    store1.add_product("test_product")
     print(store1.check_cart("client1"))
